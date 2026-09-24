@@ -2,7 +2,7 @@ import math
 
 from Date import Date, Time, DateTime
 from HebrewDate import HebrewDate
-from LocalHebrewDate import (LocalHebrewDate, Band,
+from HebrewYemama import (HebrewYemama, Band,
                              HalakhicBandNames, DayNightBandNames, BandId)
 from Custom import Custom
 from Geo import Location
@@ -152,7 +152,7 @@ class StandardClock(Clock):
 		self.SECOND_HAND_TAIL = 24 / 240 * size
 		self.location = location
 		self.custom = custom
-		self.localHebrewDate = None
+		self.hebrewYemama = None
 		self._lastHebrewDate = None
 		self.face = None
 		self.update(datetime)
@@ -160,8 +160,8 @@ class StandardClock(Clock):
 	def update(self, datetime):
 		self.datetime = datetime
 		hebrewDate = HebrewDate.fromdate(datetime.date)
-		if self.localHebrewDate is None or hebrewDate != self.localHebrewDate.hebrewDate:
-			self.localHebrewDate = LocalHebrewDate(hebrewDate, self.location, self.custom)
+		if self.hebrewYemama is None or hebrewDate != self.hebrewYemama.hebrewDate:
+			self.hebrewYemama = HebrewYemama(hebrewDate, self.location, self.custom)
 		if hebrewDate != self._lastHebrewDate:
 			self.drawHalakhicBands()
 			self._lastHebrewDate = hebrewDate
@@ -205,7 +205,7 @@ class StandardClock(Clock):
 
 	@property
 	def halakhicBands(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		yemamaStart = current.yemamaStart + TIMEZONE
 		yemamaEnd = current.yemamaEnd + TIMEZONE
 		yemamot = []
@@ -237,7 +237,7 @@ class StandardClock(Clock):
 
 	@property
 	def sunBands(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		yemamot = [current.previousYemama, current, current.nextYemama]
 		all_bands = []
 		for y in yemamot:
@@ -262,7 +262,7 @@ class StandardClock(Clock):
 
 	@property
 	def moonBands(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		yemamot = [current.previousYemama, current, current.nextYemama]
 		all_bands = []
 		for y in yemamot:
@@ -287,7 +287,7 @@ class StandardClock(Clock):
 
 	@property
 	def observanceBands(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		yemamot = [current.previousYemama, current, current.nextYemama]
 		all_bands = []
 		for y in yemamot:
@@ -313,7 +313,7 @@ class StandardClock(Clock):
 	@property
 	def visibleSeasonalHourMarks(self):
 		now = self.datetime
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		yemamot = [current.previousYemama, current, current.nextYemama]
 		lo = -180.0 + self.SEAM_GAP_DEGREES / 2.0
 		hi = 180.0 - self.SEAM_GAP_DEGREES / 2.0
@@ -440,7 +440,7 @@ class StandardClock(Clock):
 					self.OBSERVANCE_RING_THICKNESS, vb.color, stripe=vb.stripe)
 
 	def drawHalakhicBands(self):
-		bands = self.localHebrewDate.halakhicBands
+		bands = self.hebrewYemama.halakhicBands
 		datetimes = []
 		for b in bands:
 			start = b.start.datetime + TIMEZONE
@@ -586,15 +586,15 @@ class HebrewClock(Clock):
 		self.SECOND_HAND_TAIL = 12 / 240 * size
 		self.location = location
 		self.custom = custom
-		self.localHebrewDate = None
+		self.hebrewYemama = None
 		self.face = None
 		self.update(datetime)
 
 	def update(self, datetime):
 		self.datetime = datetime
 		hebrewDate = HebrewDate.fromdate(datetime.date)
-		if self.localHebrewDate is None or hebrewDate != self.localHebrewDate.hebrewDate:
-			self.localHebrewDate = LocalHebrewDate(hebrewDate, self.location, self.custom)
+		if self.hebrewYemama is None or hebrewDate != self.hebrewYemama.hebrewDate:
+			self.hebrewYemama = HebrewYemama(hebrewDate, self.location, self.custom)
 
 	@property
 	def _utcTime(self):
@@ -602,13 +602,13 @@ class HebrewClock(Clock):
 
 	@property
 	def hourHandAngle(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		h = current.hour(self._utcTime)
 		return current.angle(h)
 
 	@property
 	def secondHandAngle(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		h = current.hour(self._utcTime)
 		hourFrac = h - int(h)
 		minuteFrac = (hourFrac * 60.0) % 1.0
@@ -616,22 +616,22 @@ class HebrewClock(Clock):
 
 	@property
 	def hourMajorMarks(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		return [current.angle(h) for h in range(0, 24, 6)]
 
 	@property
 	def hourMiddleMarks(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		return [current.angle(h) for h in range(3, 24, 6)]
 
 	@property
 	def hourMarks(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		return [current.angle(h) for h in range(24) if h % 3 != 0]
 
 	@property
 	def halakhicBands(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		h = current.hour(self._utcTime)
 		prev = current.previousYemama
 		next = current.nextYemama
@@ -643,20 +643,20 @@ class HebrewClock(Clock):
 
 	@property
 	def visualHalakhicBands(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		currentHour = current.hour(self._utcTime)
 		result = []
 		for b in self.halakhicBands:
-			start = b.start.localHebrewDateTime
-			end   = b.end.localHebrewDateTime
-			startAngle = start.localHebrewDate.angle(start.hour)
-			endAngle   = end.localHebrewDate.angle(end.hour)
+			start = b.start.yemamaTime
+			end   = b.end.yemamaTime
+			startAngle = start.hebrewYemama.angle(start.hour)
+			endAngle   = end.hebrewYemama.angle(end.hour)
 			result.append(VisualBand(startAngle, endAngle, self._halakhicColor(b)))
 		return result
 
 	@property
 	def moonBands(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		h = current.hour(self._utcTime)
 		prev = current.previousYemama
 		next = current.nextYemama
@@ -668,20 +668,20 @@ class HebrewClock(Clock):
 
 	@property
 	def visualMoonBands(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		currentHour = current.hour(self._utcTime)
 		result = []
 		for b in self.moonBands:
-			start = b.start.localHebrewDateTime
-			end   = b.end.localHebrewDateTime
-			startAngle = start.localHebrewDate.angle(start.hour)
-			endAngle   = end.localHebrewDate.angle(end.hour)
+			start = b.start.yemamaTime
+			end   = b.end.yemamaTime
+			startAngle = start.hebrewYemama.angle(start.hour)
+			endAngle   = end.hebrewYemama.angle(end.hour)
 			result.append(VisualBand(startAngle, endAngle, self._moonColor(b)))
 		return result
 
 	@property
 	def observanceBands(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		h = current.hour(self._utcTime)
 		prev = current.previousYemama
 		next = current.nextYemama
@@ -693,14 +693,14 @@ class HebrewClock(Clock):
 
 	@property
 	def visibleObservanceBands(self):
-		current = self.localHebrewDate
+		current = self.hebrewYemama
 		currentHour = current.hour(self._utcTime)
 		result = []
 		for b in self.observanceBands:
-			start = b.start.localHebrewDateTime
-			end   = b.end.localHebrewDateTime
-			startAngle = start.localHebrewDate.angle(start.hour)
-			endAngle   = end.localHebrewDate.angle(end.hour)
+			start = b.start.yemamaTime
+			end   = b.end.yemamaTime
+			startAngle = start.hebrewYemama.angle(start.hour)
+			endAngle   = end.hebrewYemama.angle(end.hour)
 			result.append(VisualBand(startAngle, endAngle, self._observanceColor(b), b.stripe))
 		return result
 
@@ -831,7 +831,7 @@ if __name__ == "__main__":
 		print()
 		hc = HebrewClock(dt, location, custom)
 		print("HebrewClock bands (Hebrew window):")
-		current = hc.localHebrewDate
+		current = hc.hebrewYemama
 		h = current.hour(hc._utcTime)
 		prev = current.previousYemama
 		next = current.nextYemama
@@ -840,9 +840,9 @@ if __name__ == "__main__":
 		print(f"  Current Hebrew hour: {h:.3f}  (date {current.hebrewDate})")
 		print(f"  Window: ({prev.hebrewDate}, {h:.3f})  →  ({next.hebrewDate}, {h:.3f})")
 		for b in hc.halakhicBands:
-			start = b.start.localHebrewDateTime
-			end   = b.end.localHebrewDateTime
-			print(f"  {HalakhicBandNames('en', b.id).name():20s}  ({start.localHebrewDate.hebrewDate}, {start.hour:.3f})  →  ({end.localHebrewDate.hebrewDate}, {end.hour:.3f})  color=0x{hc._halakhicColor(b):06X}")
+			start = b.start.yemamaTime
+			end   = b.end.yemamaTime
+			print(f"  {HalakhicBandNames('en', b.id).name():20s}  ({start.hebrewYemama.hebrewDate}, {start.hour:.3f})  →  ({end.hebrewYemama.hebrewDate}, {end.hour:.3f})  color=0x{hc._halakhicColor(b):06X}")
 		print()
 		print("HebrewClock visual bands (angles):")
 		for vb in hc.visualHalakhicBands:
@@ -850,9 +850,9 @@ if __name__ == "__main__":
 		print()
 		print("Moon bands (Hebrew window):")
 		for b in hc.moonBands:
-			start = b.start.localHebrewDateTime
-			end   = b.end.localHebrewDateTime
-			print(f"  moon band  ({start.localHebrewDate.hebrewDate}, {start.hour:.3f})  →  ({end.localHebrewDate.hebrewDate}, {end.hour:.3f})  color=0x{hc._moonColor(b):06X}")
+			start = b.start.yemamaTime
+			end   = b.end.yemamaTime
+			print(f"  moon band  ({start.hebrewYemama.hebrewDate}, {start.hour:.3f})  →  ({end.hebrewYemama.hebrewDate}, {end.hour:.3f})  color=0x{hc._moonColor(b):06X}")
 		print()
 
 	for preset, name in [(Custom.LOCAL, "local"), (Custom.ASHKENAZI_GRA, "gra")]:

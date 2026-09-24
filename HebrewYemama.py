@@ -57,9 +57,9 @@ class Event:
 			name = ZmanNames('en', self.zman).name()
 		return f"Event({name}, {self.datetime!r})"
 
-class LocalHebrewDateTime:
-	def __init__(self, localHebrewDate, hour):
-		self.localHebrewDate = localHebrewDate
+class HebrewYemamaTime:
+	def __init__(self, hebrewYemama, hour):
+		self.hebrewYemama = hebrewYemama
 		self.hour = hour
 
 
@@ -76,7 +76,7 @@ class Band:
 
 
 
-class LocalHebrewDate:
+class HebrewYemama:
 	def __init__(self, hebrewDate, location, custom):
 		self.hebrewDate = hebrewDate
 		self.location = location
@@ -122,7 +122,7 @@ class LocalHebrewDate:
 				Event(self.yemamaEnd, Zman.YEMAMA_END),
 			]
 		for e in events:
-			e.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(e.datetime.time))
+			e.yemamaTime = HebrewYemamaTime(self, self.hour(e.datetime.time))
 		self._events = events
 		return self._events
 
@@ -296,11 +296,11 @@ class LocalHebrewDate:
 
 	@property
 	def previousYemama(self):
-		return LocalHebrewDate(self.hebrewDate.prev, self.location, self.custom)
+		return HebrewYemama(self.hebrewDate.prev, self.location, self.custom)
 
 	@property
 	def nextYemama(self):
-		return LocalHebrewDate(self.hebrewDate.next, self.location, self.custom)
+		return HebrewYemama(self.hebrewDate.next, self.location, self.custom)
 
 	def angle(self, hour):
 		total = self.dayLength + self.nightLength
@@ -324,147 +324,147 @@ class LocalHebrewDate:
 			# Nightfall band
 			start = Event(self.yemamaStart, Zman.SUNSET)
 			end = Event(self.nightfall, Zman.NIGHTFALL)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.NIGHTFALL))
 
 			# Watch 1 : nightfall → hour 4
 			start = Event(self.nightfall)
 			end   = Event(self.hours[4])
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime   = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime   = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.WATCH1))
 
 			# Watch 2 : hour 4 → hour 8
 			start = Event(self.hours[4])
 			end   = Event(self.hours[8])
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime   = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime   = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.WATCH2))
 
 			# Watch 3 : hour 8 → dawn
 			start = Event(self.hours[8])
 			end   = Event(self.dawn)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime   = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime   = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.WATCH3))
 
 			# Dawn band
 			start = Event(self.dawn, Zman.DAWN)
 			end = Event(self.misheyakir, Zman.MISHEYAKIR)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.DAWN))
 
 			# Misheyakir band
 			start = Event(self.misheyakir, Zman.MISHEYAKIR)
 			end = Event(self.sunrise, Zman.SUNRISE)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.MISHEYAKIR))
 
 			# Daytime bands
 			start = Event(self.sunrise, Zman.SUNRISE)
 			end = Event(self.shemaEnd, Zman.SHEMA_END)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.SHEMA))
 
 			start = Event(self.shemaEnd, Zman.SHEMA_END)
 			end = Event(self.amidahEnd, Zman.AMIDAH_END)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.AMIDAH))
 
 			start = Event(self.mincha, Zman.MINCHA_GEDOLAH)
 			end = Event(self.minchaKetana, Zman.MINCHA_KETANA)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.MINCHA_GEDOLAH))
 
 			start = Event(self.minchaKetana, Zman.MINCHA_KETANA)
 			end = Event(self.plagMincha, Zman.PLAG_MINCHA)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.MINCHA_KETANA))
 
 			start = Event(self.plagMincha, Zman.PLAG_MINCHA)
 			end = Event(self.sunset, Zman.SUNSET)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.PLAG_MINCHA))
 		else:
 			# Watch 1 : nightfall → hour 4
 			start = Event(self.yemamaStart)
 			end   = Event(self.hours[4])
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime   = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime   = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.WATCH1))
 
 			# Watch 2 : hour 4 → hour 8
 			start = Event(self.hours[4])
 			end   = Event(self.hours[8])
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime   = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime   = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.WATCH2))
 
 			# Watch 3 : hour 8 → dawn
 			start = Event(self.hours[8])
 			end   = Event(self.dayStart)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime   = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime   = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.WATCH3))
 
 			# Dawn band
 			start = Event(self.dawn, Zman.DAWN)
 			end = Event(self.misheyakir, Zman.MISHEYAKIR)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.DAWN))
 
 			# Misheyakir band
 			start = Event(self.misheyakir, Zman.MISHEYAKIR)
 			end = Event(self.sunrise, Zman.SUNRISE)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.MISHEYAKIR))
 
 			# Daytime bands
 			start = Event(self.sunrise, Zman.SUNRISE)
 			end = Event(self.shemaEnd, Zman.SHEMA_END)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.SHEMA))
 
 			start = Event(self.shemaEnd, Zman.SHEMA_END)
 			end = Event(self.amidahEnd, Zman.AMIDAH_END)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.AMIDAH))
 
 			start = Event(self.mincha, Zman.MINCHA_GEDOLAH)
 			end = Event(self.minchaKetana, Zman.MINCHA_KETANA)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.MINCHA_GEDOLAH))
 
 			start = Event(self.minchaKetana, Zman.MINCHA_KETANA)
 			end = Event(self.plagMincha, Zman.PLAG_MINCHA)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.MINCHA_KETANA))
 
 			start = Event(self.plagMincha, Zman.PLAG_MINCHA)
 			end = Event(self.sunset, Zman.SUNSET)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.PLAG_MINCHA))
 
 			# Nightfall band
 			start = Event(self.sunset, Zman.SUNSET)
 			end = Event(self.nightfall, Zman.NIGHTFALL)
-			start.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.datetime.time))
-			end.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.datetime.time))
+			start.yemamaTime = HebrewYemamaTime(self, self.hour(start.datetime.time))
+			end.yemamaTime = HebrewYemamaTime(self, self.hour(end.datetime.time))
 			bands.append(Band(start, end, BandId.NIGHTFALL))
 		return bands
 	
@@ -478,14 +478,14 @@ class LocalHebrewDate:
 
 		start_ev = Event(sunset_prev, Zman.SUNSET)
 		end_ev = Event(sunrise_today, Zman.SUNRISE)
-		start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(sunset_prev.time))
-		end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(sunrise_today.time))
+		start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(sunset_prev.time))
+		end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(sunrise_today.time))
 		bands.append(Band(start_ev, end_ev, BandId.NIGHT))
 
 		start_ev = Event(sunrise_today, Zman.SUNRISE)
 		end_ev = Event(sunset_today, Zman.SUNSET)
-		start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(sunrise_today.time))
-		end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(sunset_today.time))
+		start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(sunrise_today.time))
+		end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(sunset_today.time))
 		bands.append(Band(start_ev, end_ev, BandId.DAY))
 
 		return bands
@@ -537,8 +537,8 @@ class LocalHebrewDate:
 		for start_dt, end_dt in clipped:
 			start_ev = Event(start_dt)
 			end_ev = Event(end_dt)
-			start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start_dt.time))
-			end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end_dt.time))
+			start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(start_dt.time))
+			end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(end_dt.time))
 			bands.append(Band(start_ev, end_ev, phase_type))
 
 		return bands
@@ -632,22 +632,22 @@ class LocalHebrewDate:
 		elif isRest and not isMajorFast:
 			start_ev = Event(start)
 			end_ev = Event(end)
-			start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.time))
-			end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.time))
+			start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(start.time))
+			end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(end.time))
 			bands.append(Band(start_ev, end_ev, id=BandId.REST))
 
 		elif isYomTov:
 			start_ev = Event(start)
 			end_ev = Event(end)
-			start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.time))
-			end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.time))
+			start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(start.time))
+			end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(end.time))
 			bands.append(Band(start_ev, end_ev, id=BandId.YOMTOV))
 
 		elif isMajorFast:
 			start_ev = Event(start)
 			end_ev = Event(end)
-			start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.time))
-			end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.time))
+			start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(start.time))
+			end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(end.time))
 			bands.append(Band(start_ev, end_ev, id=BandId.REST_STRIPED, stripe=True))
 
 		elif isMinorFast:
@@ -657,37 +657,37 @@ class LocalHebrewDate:
 			if start < pre_fast_end:
 				start_ev = Event(start)
 				end_ev = Event(pre_fast_end)
-				start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.time))
-				end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(pre_fast_end.time))
+				start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(start.time))
+				end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(pre_fast_end.time))
 				bands.append(Band(start_ev, end_ev, id=BandId.FAST))
 			if post_fast_start < end:
 				start_ev = Event(post_fast_start)
 				end_ev = Event(end)
-				start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(post_fast_start.time))
-				end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.time))
+				start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(post_fast_start.time))
+				end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(end.time))
 				bands.append(Band(start_ev, end_ev, id=BandId.FAST))
 			fast_start = self.dawn
 			fast_end = self.nightfall
 			if fast_start < fast_end:
 				start_ev = Event(fast_start)
 				end_ev = Event(fast_end)
-				start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(fast_start.time))
-				end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(fast_end.time))
+				start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(fast_start.time))
+				end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(fast_end.time))
 				bands.append(Band(start_ev, end_ev, id=BandId.FAST_STRIPED, stripe=True))
 
 			if not bands:
 				start_ev = Event(start)
 				end_ev = Event(end)
-				start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start.time))
-				end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end.time))
+				start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(start.time))
+				end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(end.time))
 				bands.append(Band(start_ev, end_ev, id=BandId.FAST_STRIPED, stripe=True))
 
 		if next_rest_band is not None:
 			stripe, band_id = next_rest_band
 			start_ev = Event(self.sunset)
 			end_ev = Event(orig_end)
-			start_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(start_ev.datetime.time))
-			end_ev.localHebrewDateTime = LocalHebrewDateTime(self, self.hour(end_ev.datetime.time))
+			start_ev.yemamaTime = HebrewYemamaTime(self, self.hour(start_ev.datetime.time))
+			end_ev.yemamaTime = HebrewYemamaTime(self, self.hour(end_ev.datetime.time))
 			bands.append(Band(start_ev, end_ev, id=band_id, stripe=stripe))
 
 		return bands
