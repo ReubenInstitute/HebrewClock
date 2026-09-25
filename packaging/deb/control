@@ -6,5 +6,5 @@ Architecture: all
 Depends: python3, python3-date, python3-astro, python3-hebrewdate, python3-pil
 Maintainer: Reuben Institute <reubeninstitute@gmail.com>
 Description: Halakhic day-division times and clock rendering
- Provides HebrewYemama, Clock, Display and Custom modules for halakhic
- day-division times (yemama), clock rendering, and custom day-definitions.
+ Halakhic day-division times (yemama), clock rendering, and custom
+ day-definitions, from Reuben Institute.

@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "HebrewYemama"
-version = "1.0"
-description = "Halakhic day-division times (yemama), clock rendering, and custom day-definitions"
-readme = { text = "Halakhic day-division times (yemama), clock rendering, and custom day-definitions.", content-type = "text/plain" }
+version = "0.3"
+description = "Halakhic day-division times (yemama), clock rendering, and custom day-definitions, from Reuben Institute"
+readme = { text = "Halakhic day-division times (yemama), clock rendering, and custom day-definitions, from Reuben Institute.", content-type = "text/plain" }
 requires-python = ">=3.8"
 dependencies = [
     "Date",
