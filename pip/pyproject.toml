@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "HebrewYemama"
-version = "0.7"
+version = "0.9"
 description = "Halakhic day-division times (yemama), clock rendering, and custom day-definitions, from Reuben Institute"
 readme = { text = "Halakhic day-division times (yemama), clock rendering, and custom day-definitions, from Reuben Institute.", content-type = "text/plain" }
 license = "GPL-3.0-or-later"

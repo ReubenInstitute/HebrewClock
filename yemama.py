@@ -1,9 +1,11 @@
 from enum import IntEnum
 
-from Date import DateTime, Date, Time
-from Sun import Sun
-from Custom import Custom, DayDefinition, DawnCustom, NightfallCustom, MisheyakirCustom
-from Moon import Moon, MoonPhaseType, MoonPhaseColor
+from date import DateTime, Date, Time
+from astro import Sun
+from hebrewclock import Custom, DayDefinition, DawnCustom, NightfallCustom, MisheyakirCustom
+from astro import Moon, MoonPhaseType, MoonPhaseColor
+
+from hebrewdate import HebrewHoliday, HebrewHolidayId
 
 
 class Zman(IntEnum):
@@ -561,7 +563,6 @@ class HebrewYemama:
 
 	@property
 	def observanceBands(self):
-		from HebrewHoliday import HebrewHoliday, HebrewHolidayId
 
 		holiday = HebrewHoliday(self.hebrewDate)
 		isRest = holiday.id in (

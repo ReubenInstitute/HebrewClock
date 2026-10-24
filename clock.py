@@ -1,14 +1,14 @@
 import math
 
-from Date import Date, Time, DateTime
-from HebrewDate import HebrewDate
-from HebrewYemama import (HebrewYemama, Band,
+from date import Date, Time, DateTime
+from hebrewdate import HebrewDate
+from hebrewclock import (HebrewYemama, Band,
                              HalakhicBandNames, DayNightBandNames, BandId)
-from Custom import Custom
-from Geo import Location
-from Moon import MoonPhaseColor
+from hebrewclock import Custom
+from geo import Location
+from astro import MoonPhaseColor
 
-from Display import Display
+from hebrewclock import Display
 
 TIMEZONE = 3 * 3600
 
