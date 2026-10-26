@@ -1,17 +1,22 @@
 import math
 
-from date import Date, Time, DateTime
-from hebrewdate import HebrewDate
-from hebrewclock import (HebrewYemama, Band,
-                             HalakhicBandNames, DayNightBandNames, BandId)
-from hebrewclock import Custom
-from geo import Location
-from astro import MoonPhaseColor
+from Date import Date, Time, DateTime
+from HebrewDate import HebrewDate
+from HebrewClock import (HebrewYemama, Band,
+		HalakhicBandNames, DayNightBandNames, BandId)
+from HebrewClock import Custom
+from Geo import Location
+from Astro import MoonPhaseColor
 
-from hebrewclock import Display
+from HebrewClock import Display
+
+
+from pathlib import Path
+
+
+ROOT = Path(__file__).parent
 
 TIMEZONE = 3 * 3600
-
 
 class VisualBand:
 	def __init__(self, startAngle, endAngle, color, stripe=False):
@@ -135,7 +140,7 @@ class Clock:
 
 
 class StandardClock(Clock):
-	FONT_ASSISTANT = "Assistant-Regular.ttf"
+	FONT_ASSISTANT = ROOT / "../Fonts/Assistant-Regular.ttf"
 	MINUTE_TICK_COLOR = 0xAAAAAA
 	RING_TRACK_COLOR = 0xDCDCDC
 	SEAM_GAP_DEGREES = 30.0
@@ -568,7 +573,7 @@ class StandardClock(Clock):
 			self.d = temp
 			self.drawMarks()
 			self.d = old_d
-			self.face = bytes(temp.buffer)
+			self.face = temp.buffer.copy()
 		d.buffer[:] = self.face
 		self.drawVisibleSunBands()
 		self.drawVisibleMoonBands()
@@ -786,7 +791,7 @@ class HebrewClock(Clock):
 			self.d = temp
 			self.drawMarks()
 			self.d = old_d
-			self.face = bytes(temp.buffer)
+			self.face = temp.buffer.copy()
 		d.buffer[:] = self.face
 		self.drawVisibleMoonBands()
 		self.drawVisibleHalakhicBands()

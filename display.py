@@ -1,212 +1,181 @@
 import math
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 
 class Display:
 	_font_cache = {}
+	_char_cache = {}
 
 	def __init__(self, size=240):
 		self.WIDTH = size
 		self.HEIGHT = size
-		self.buffer = bytearray(self.WIDTH * self.HEIGHT * 4)
+		self.buffer = np.zeros((self.HEIGHT, self.WIDTH, 4), dtype=np.uint8)
 		self.clear()
 
 	def clear(self):
-		for i in range(0, len(self.buffer), 4):
-			self.buffer[i]	   = 0
-			self.buffer[i + 1] = 0
-			self.buffer[i + 2] = 0
-			self.buffer[i + 3] = 0
+		self.buffer[:] = 0
 
 	def fill(self, color=0x000000):
 		r = (color >> 16) & 0xFF
 		g = (color >> 8) & 0xFF
 		b = color & 0xFF
-		for i in range(0, len(self.buffer), 4):
-			self.buffer[i]	   = r
-			self.buffer[i + 1] = g
-			self.buffer[i + 2] = b
-			self.buffer[i + 3] = 255
+		self.buffer[:] = (r, g, b, 255)
 
-	def _blend(self, idx, fr, fg, fb, alpha):
-		if alpha <= 0.0:
+	# ------------------------------------------------------------------
+	#  compositing helpers (vectorized)
+	# ------------------------------------------------------------------
+
+	def _blendView(self, view, fr, fg, fb, alpha):
+		"""Alpha-blend a flat color into a (h, w, 4) view. view is modified in place."""
+		touched = alpha > 0.0
+		if not touched.any():
 			return
-		if alpha > 1.0:
-			alpha = 1.0
+		dst_a = view[..., 3].astype(np.float32) / 255.0
+		out_a = alpha + dst_a * (1.0 - alpha)
+		safe = np.where(out_a > 1e-6, out_a, 1.0)
+		w_src = alpha / safe
+		w_dst = dst_a * (1.0 - alpha) / safe
+		out_r = w_src * fr + w_dst * view[..., 0].astype(np.float32)
+		out_g = w_src * fg + w_dst * view[..., 1].astype(np.float32)
+		out_b = w_src * fb + w_dst * view[..., 2].astype(np.float32)
+		np.copyto(view[..., 0], np.clip(out_r + 0.5, 0, 255).astype(np.uint8), where=touched)
+		np.copyto(view[..., 1], np.clip(out_g + 0.5, 0, 255).astype(np.uint8), where=touched)
+		np.copyto(view[..., 2], np.clip(out_b + 0.5, 0, 255).astype(np.uint8), where=touched)
+		np.copyto(view[..., 3], np.clip(out_a * 255.0 + 0.5, 0, 255).astype(np.uint8), where=touched)
 
-		ba = self.buffer[idx + 3] / 255.0
-		outA = alpha + ba * (1.0 - alpha)
-
-		if outA <= 0.0:
-			self.buffer[idx]	 = 0
-			self.buffer[idx + 1] = 0
-			self.buffer[idx + 2] = 0
-			self.buffer[idx + 3] = 0
+	def _blendImage(self, view, src):
+		"""Alpha-blend an RGBA source array (h, w, 4) into an RGBA view of the same shape."""
+		src_a = src[..., 3].astype(np.float32) / 255.0
+		touched = src_a > 0.0
+		if not touched.any():
 			return
+		dst_a = view[..., 3].astype(np.float32) / 255.0
+		out_a = src_a + dst_a * (1.0 - src_a)
+		safe = np.where(out_a > 1e-6, out_a, 1.0)
+		w_src = src_a / safe
+		w_dst = dst_a * (1.0 - src_a) / safe
+		out_r = w_src * src[..., 0].astype(np.float32) + w_dst * view[..., 0].astype(np.float32)
+		out_g = w_src * src[..., 1].astype(np.float32) + w_dst * view[..., 1].astype(np.float32)
+		out_b = w_src * src[..., 2].astype(np.float32) + w_dst * view[..., 2].astype(np.float32)
+		np.copyto(view[..., 0], np.clip(out_r + 0.5, 0, 255).astype(np.uint8), where=touched)
+		np.copyto(view[..., 1], np.clip(out_g + 0.5, 0, 255).astype(np.uint8), where=touched)
+		np.copyto(view[..., 2], np.clip(out_b + 0.5, 0, 255).astype(np.uint8), where=touched)
+		np.copyto(view[..., 3], np.clip(out_a * 255.0 + 0.5, 0, 255).astype(np.uint8), where=touched)
 
-		if alpha >= 1.0:
-			self.buffer[idx]	 = fr
-			self.buffer[idx + 1] = fg
-			self.buffer[idx + 2] = fb
-			self.buffer[idx + 3] = 255
-			return
-
-		br = self.buffer[idx]
-		bg = self.buffer[idx + 1]
-		bb = self.buffer[idx + 2]
-		remainder = ba * (1.0 - alpha)
-
-		outR = (fr * alpha + br * remainder) / outA
-		outG = (fg * alpha + bg * remainder) / outA
-		outB = (fb * alpha + bb * remainder) / outA
-
-		self.buffer[idx]	 = int(outR + 0.5)
-		self.buffer[idx + 1] = int(outG + 0.5)
-		self.buffer[idx + 2] = int(outB + 0.5)
-		self.buffer[idx + 3] = int(outA * 255.0 + 0.5)
-
-	@staticmethod
-	def _pointToSegmentDistance(px, py, x1, y1, x2, y2):
-		dx = x2 - x1
-		dy = y2 - y1
-		lenSq = dx * dx + dy * dy
-		if lenSq == 0.0:
-			ex = px - x1
-			ey = py - y1
-			return math.sqrt(ex * ex + ey * ey)
-		t = ((px - x1) * dx + (py - y1) * dy) / lenSq
-		if t < 0.0:
-			t = 0.0
-		if t > 1.0:
-			t = 1.0
-		projx = x1 + t * dx
-		projy = y1 + t * dy
-		ex = px - projx
-		ey = py - projy
-		return math.sqrt(ex * ex + ey * ey)
-
-	@staticmethod
-	def _pointToArcDistance(px, py, cx, cy, radius, startAngle, endAngle, halfWidth):
-		if endAngle - startAngle >= 360.0:
-			dx = px - cx
-			dy = py - cy
-			distToCenter = math.sqrt(dx*dx + dy*dy)
-			return abs(distToCenter - radius)
-
-		dx = px - cx
-		dy = py - cy
-		distToCenter = math.sqrt(dx * dx + dy * dy)
-
-		sr = math.radians(startAngle)
-		er = math.radians(endAngle)
-		sr = sr % (2.0 * math.pi)
-		er = er % (2.0 * math.pi)
-
-		if distToCenter == 0.0:
-			a0 = 0.0
-			if startAngle <= endAngle:
-				inRange = (a0 >= startAngle and a0 <= endAngle)
-			else:
-				inRange = (a0 >= startAngle or a0 <= endAngle)
-		else:
-			angle = math.atan2(dy, dx)
-			if angle < 0.0:
-				angle += 2.0 * math.pi
-
-			if sr <= er:
-				inRange = (angle >= sr and angle <= er)
-			else:
-				inRange = (angle >= sr or angle <= er)
-
-		if inRange:
-			return abs(distToCenter - radius)
-
-		innerR = radius - halfWidth
-		outerR = radius + halfWidth
-
-		sxi = cx + innerR * math.cos(sr)
-		syi = cy + innerR * math.sin(sr)
-		sxo = cx + outerR * math.cos(sr)
-		syo = cy + outerR * math.sin(sr)
-
-		exi = cx + innerR * math.cos(er)
-		eyi = cy + innerR * math.sin(er)
-		exo = cx + outerR * math.cos(er)
-		eyo = cy + outerR * math.sin(er)
-
-		d1 = Display._pointToSegmentDistance(px, py, sxi, syi, sxo, syo)
-		d2 = Display._pointToSegmentDistance(px, py, exi, eyi, exo, eyo)
-		dmin = d1 if d1 < d2 else d2
-
-		return dmin + halfWidth
+	# ------------------------------------------------------------------
+	#  primitives
+	# ------------------------------------------------------------------
 
 	def drawLine(self, x1, y1, x2, y2, thickness, color):
+		hw = thickness * 0.5
 		fr = (color >> 16) & 0xFF
 		fg = (color >> 8) & 0xFF
 		fb = color & 0xFF
 
-		hw = thickness * 0.5
-		xmin = min(x1, x2) - int(hw + 1.0)
-		xmax = max(x1, x2) + int(hw + 1.0)
-		ymin = min(y1, y2) - int(hw + 1.0)
-		ymax = max(y1, y2) + int(hw + 1.0)
+		m = hw + 2.0
+		xmin = max(0, int(min(x1, x2) - m))
+		xmax = min(self.WIDTH - 1, int(max(x1, x2) + m))
+		ymin = max(0, int(min(y1, y2) - m))
+		ymax = min(self.HEIGHT - 1, int(max(y1, y2) + m))
+		if xmin > xmax or ymin > ymax:
+			return
 
-		if xmin < 0: xmin = 0
-		if ymin < 0: ymin = 0
-		if xmax >= self.WIDTH:  xmax = self.WIDTH - 1
-		if ymax >= self.HEIGHT: ymax = self.HEIGHT - 1
+		pxg = (np.arange(xmin, xmax + 1, dtype=np.float32) + 0.5)[None, :]
+		pyg = (np.arange(ymin, ymax + 1, dtype=np.float32) + 0.5)[:, None]
 
-		for y in range(ymin, ymax + 1):
-			for x in range(xmin, xmax + 1):
-				px = x + 0.5
-				py = y + 0.5
-				dist = self._pointToSegmentDistance(px, py,
-													x1 + 0.5, y1 + 0.5,
-													x2 + 0.5, y2 + 0.5)
-				r = dist - hw
-				if r <= -1.0:
-					alpha = 1.0
-				elif r >= 1.0:
-					alpha = 0.0
-				else:
-					alpha = 1.0 - (r + 1.0) * 0.5
+		sx1 = np.float32(x1 + 0.5)
+		sy1 = np.float32(y1 + 0.5)
+		sx2 = np.float32(x2 + 0.5)
+		sy2 = np.float32(y2 + 0.5)
+		segdx = sx2 - sx1
+		segdy = sy2 - sy1
+		L2 = segdx * segdx + segdy * segdy
 
-				if alpha <= 0.0:
-					continue
+		if L2 <= 1e-8:
+			dist = np.sqrt((pxg - sx1) ** 2 + (pyg - sy1) ** 2)
+		else:
+			t = np.clip(((pxg - sx1) * segdx + (pyg - sy1) * segdy) / L2, 0.0, 1.0)
+			qx = sx1 + t * segdx
+			qy = sy1 + t * segdy
+			dist = np.sqrt((pxg - qx) ** 2 + (pyg - qy) ** 2)
 
-				idx = (y * self.WIDTH + x) * 4
-				self._blend(idx, fr, fg, fb, alpha)
+		r = dist - hw
+		alpha = np.clip((1.0 - r) * 0.5, 0.0, 1.0)
+		view = self.buffer[ymin:ymax + 1, xmin:xmax + 1]
+		self._blendView(view, fr, fg, fb, alpha)
 
 	def drawArc(self, cx, cy, radius, startAngle, endAngle, thickness, color, stripe=False, stripeColor=0xffffff):
+		hw = thickness * 0.5
 		fr = (color >> 16) & 0xFF
 		fg = (color >> 8) & 0xFF
 		fb = color & 0xFF
-		hw = thickness * 0.5
-		margin = int(hw + 1.0)
-		xmin = int(cx - radius - margin)
-		xmax = int(cx + radius + margin)
-		ymin = int(cy - radius - margin)
-		ymax = int(cy + radius + margin)
-		if xmin < 0: xmin = 0
-		if ymin < 0: ymin = 0
-		if xmax >= self.WIDTH:  xmax = self.WIDTH - 1
-		if ymax >= self.HEIGHT: ymax = self.HEIGHT - 1
-		for y in range(ymin, ymax + 1):
-			for x in range(xmin, xmax + 1):
-				px = x + 0.5
-				py = y + 0.5
-				dist = self._pointToArcDistance(px, py, cx + 0.5, cy + 0.5, float(radius), startAngle, endAngle, hw)
-				r = dist - hw
-				if r <= -1.0:
-					alpha = 1.0
-				elif r >= 1.0:
-					alpha = 0.0
-				else:
-					alpha = 1.0 - (r + 1.0) * 0.5
-				if alpha <= 0.0:
-					continue
-				idx = (y * self.WIDTH + x) * 4
-				self._blend(idx, fr, fg, fb, alpha)
+		radius_f = np.float32(radius)
+		hw_f = np.float32(hw)
+
+		m = hw + 2.0
+		xmin = max(0, int(cx - radius - m))
+		xmax = min(self.WIDTH - 1, int(cx + radius + m))
+		ymin = max(0, int(cy - radius - m))
+		ymax = min(self.HEIGHT - 1, int(cy + radius + m))
+		if xmin > xmax or ymin > ymax:
+			return
+
+		pxg = (np.arange(xmin, xmax + 1) - cx).astype(np.float32)[None, :]
+		pyg = (np.arange(ymin, ymax + 1) - cy).astype(np.float32)[:, None]
+
+		r = np.sqrt(pxg * pxg + pyg * pyg)
+		dr = np.abs(r - radius_f) - hw_f
+
+		span_deg = endAngle - startAngle
+		if span_deg >= 360.0:
+			alpha = np.clip((1.0 - dr) * 0.5, 0.0, 1.0)
+		else:
+			two_pi = np.float32(2.0 * np.pi)
+			sr = np.float32(np.radians(startAngle)) % two_pi
+			er = np.float32(np.radians(endAngle)) % two_pi
+
+			theta = np.arctan2(pyg, pxg) % two_pi
+			if sr <= er:
+				in_wedge = (theta >= sr) & (theta <= er)
+			else:
+				in_wedge = (theta >= sr) | (theta <= er)
+
+			innerR = radius_f - hw_f
+			outerR = radius_f + hw_f
+			cs, sn = np.float32(np.cos(sr)), np.float32(np.sin(sr))
+			ce, se = np.float32(np.cos(er)), np.float32(np.sin(er))
+
+			ax1 = innerR * cs
+			ay1 = innerR * sn
+			ax2 = outerR * cs
+			ay2 = outerR * sn
+			adx = ax2 - ax1
+			ady = ay2 - ay1
+			aL2 = adx * adx + ady * ady
+			at = np.clip(((pxg - ax1) * adx + (pyg - ay1) * ady) / aL2, 0.0, 1.0)
+			aqx = ax1 + at * adx
+			aqy = ay1 + at * ady
+			d_cap_a = np.sqrt((pxg - aqx) ** 2 + (pyg - aqy) ** 2)
+
+			bx1 = innerR * ce
+			by1 = innerR * se
+			bx2 = outerR * ce
+			by2 = outerR * se
+			bdx = bx2 - bx1
+			bdy = by2 - by1
+			bL2 = bdx * bdx + bdy * bdy
+			bt = np.clip(((pxg - bx1) * bdx + (pyg - by1) * bdy) / bL2, 0.0, 1.0)
+			bqx = bx1 + bt * bdx
+			bqy = by1 + bt * bdy
+			d_cap_b = np.sqrt((pxg - bqx) ** 2 + (pyg - bqy) ** 2)
+
+			cap_sdf = np.minimum(d_cap_a, d_cap_b)
+			sdf = np.where(in_wedge, dr, cap_sdf)
+			alpha = np.clip((1.0 - sdf) * 0.5, 0.0, 1.0)
+
+		view = self.buffer[ymin:ymax + 1, xmin:xmax + 1]
+		self._blendView(view, fr, fg, fb, alpha)
 
 		if stripe:
 			halfWidth = thickness / 2.0
@@ -246,35 +215,27 @@ class Display:
 		fr = (color >> 16) & 0xFF
 		fg = (color >> 8) & 0xFF
 		fb = color & 0xFF
+		radius_f = np.float32(radius)
 
-		margin = 1
-		xmin = int(cx - radius - margin)
-		xmax = int(cx + radius + margin)
-		ymin = int(cy - radius - margin)
-		ymax = int(cy + radius + margin)
-		if xmin < 0: xmin = 0
-		if ymin < 0: ymin = 0
-		if xmax >= self.WIDTH:  xmax = self.WIDTH - 1
-		if ymax >= self.HEIGHT: ymax = self.HEIGHT - 1
+		margin = 2
+		xmin = max(0, int(cx - radius - margin))
+		xmax = min(self.WIDTH - 1, int(cx + radius + margin))
+		ymin = max(0, int(cy - radius - margin))
+		ymax = min(self.HEIGHT - 1, int(cy + radius + margin))
+		if xmin > xmax or ymin > ymax:
+			return
 
-		for y in range(ymin, ymax + 1):
-			for x in range(xmin, xmax + 1):
-				px = x + 0.5 - (cx + 0.5)
-				py = y + 0.5 - (cy + 0.5)
-				dist = math.sqrt(px * px + py * py)
-				r = dist - radius
-				if r <= -1.0:
-					alpha = 1.0
-				elif r >= 1.0:
-					alpha = 0.0
-				else:
-					alpha = 1.0 - (r + 1.0) * 0.5
-				if alpha <= 0.0:
-					continue
-				idx = (y * self.WIDTH + x) * 4
-				self._blend(idx, fr, fg, fb, alpha)
+		pxg = (np.arange(xmin, xmax + 1) - cx).astype(np.float32)[None, :]
+		pyg = (np.arange(ymin, ymax + 1) - cy).astype(np.float32)[:, None]
 
-	def drawCurvedChar(self, cx, cy, radius, angle, char, font_filename, fontsize, rotation=0):
+		dist = np.sqrt(pxg * pxg + pyg * pyg)
+		r = dist - radius_f
+		alpha = np.clip((1.0 - r) * 0.5, 0.0, 1.0)
+
+		view = self.buffer[ymin:ymax + 1, xmin:xmax + 1]
+		self._blendView(view, fr, fg, fb, alpha)
+
+	def _renderChar(self, char, font_filename, fontsize, rotation):
 		scale = 4
 		big_size = int(fontsize * scale)
 		cache_key = (font_filename, big_size)
@@ -290,24 +251,34 @@ class Display:
 		tx = (img.width - tw) // 2 - bbox[0]
 		ty = (img.height - th) // 2 - bbox[1]
 		draw.text((tx, ty), char, fill=(0, 0, 0, 255), font=font)
-		rot_angle = -angle - 90.0 + rotation
+		rot_angle = -rotation
 		rotated = img.rotate(rot_angle, expand=False, resample=Image.BICUBIC)
 		final_size = int(fontsize * 1.2)
 		resized = rotated.resize((final_size, final_size), Image.LANCZOS)
-		x = int(cx + radius * math.cos(math.radians(angle)) - final_size // 2)
-		y = int(cy + radius * math.sin(math.radians(angle)) - final_size // 2)
-		for iy in range(resized.height):
-			for ix in range(resized.width):
-				r, g, b, a = resized.getpixel((ix, iy))
-				if a == 0:
-					continue
-				px = x + ix
-				py = y + iy
-				if 0 <= px < self.WIDTH and 0 <= py < self.HEIGHT:
-					idx = (py * self.WIDTH + px) * 4
-					self._blend(idx, r, g, b, a / 255.0)
+		return np.array(resized, dtype=np.uint8)
+
+	def drawCurvedChar(self, cx, cy, radius, angle, char, font_filename, fontsize, rotation=0):
+		render_rot = angle + 90.0 - rotation
+		cache_key = (char, font_filename, fontsize, render_rot)
+		img = Display._char_cache.get(cache_key)
+		if img is None:
+			img = self._renderChar(char, font_filename, fontsize, render_rot)
+			Display._char_cache[cache_key] = img
+
+		h, w = img.shape[:2]
+		x = int(cx + radius * math.cos(math.radians(angle)) - w // 2)
+		y = int(cy + radius * math.sin(math.radians(angle)) - h // 2)
+
+		x0 = max(0, x)
+		y0 = max(0, y)
+		x1 = min(self.WIDTH, x + w)
+		y1 = min(self.HEIGHT, y + h)
+		if x0 >= x1 or y0 >= y1:
+			return
+
+		view = self.buffer[y0:y1, x0:x1]
+		src = img[y0 - y:y1 - y, x0 - x:x1 - x]
+		self._blendImage(view, src)
 
 	def save(self, filename):
-		from PIL import Image
-		img = Image.frombytes('RGBA', (self.WIDTH, self.HEIGHT), bytes(self.buffer))
-		img.save(filename)
+		Image.fromarray(self.buffer, 'RGBA').save(filename)

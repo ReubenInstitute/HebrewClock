@@ -1,11 +1,11 @@
 from enum import IntEnum
+from functools import cached_property
 
-from date import DateTime, Date, Time
-from astro import Sun
-from hebrewclock import Custom, DayDefinition, DawnCustom, NightfallCustom, MisheyakirCustom
-from astro import Moon, MoonPhaseType, MoonPhaseColor
-
-from hebrewdate import HebrewHoliday, HebrewHolidayId
+from Date import DateTime, Date, Time
+from Astro import Sun
+from HebrewClock import Custom, DayDefinition, DawnCustom, NightfallCustom, MisheyakirCustom
+from Astro import Moon, MoonPhaseType, MoonPhaseColor
+from HebrewDate import HebrewHoliday, HebrewHolidayId
 
 
 class Zman(IntEnum):
@@ -83,12 +83,9 @@ class HebrewYemama:
 		self.hebrewDate = hebrewDate
 		self.location = location
 		self.custom = custom
-		self._events = None
 
-	@property
+	@cached_property
 	def events(self):
-		if self._events:
-			return self._events
 		if self.custom.dayDefinition == DayDefinition.GRA:
 			events = [
 				Event(self.yemamaStart, Zman.YEMAMA_START),
@@ -125,32 +122,27 @@ class HebrewYemama:
 			]
 		for e in events:
 			e.yemamaTime = HebrewYemamaTime(self, self.hour(e.datetime.time))
-		self._events = events
-		return self._events
+		return events
 
-	@property
+	@cached_property
 	def sun(self):
-		if not hasattr(self, '_sun_cache'):
-			dt = DateTime(Date.fromordinal(self.hebrewDate.ordinal), Time(0, 0, 0))
-			self._sun_cache = Sun(self.location, dt)
-		return self._sun_cache
+		dt = DateTime(Date.fromordinal(self.hebrewDate.ordinal), Time(0, 0, 0))
+		return Sun(self.location, dt)
 
-	@property
+	@cached_property
 	def sunYesterday(self):
-		if not hasattr(self, '_sunYesterday_cache'):
-			dt = DateTime(Date.fromordinal(self.hebrewDate.ordinal - 1), Time(0, 0, 0))
-			self._sunYesterday_cache = Sun(self.location, dt)
-		return self._sunYesterday_cache
+		dt = DateTime(Date.fromordinal(self.hebrewDate.ordinal - 1), Time(0, 0, 0))
+		return Sun(self.location, dt)
 
-	@property
+	@cached_property
 	def sunrise(self):
 		return self.sun.rise
 
-	@property
+	@cached_property
 	def sunset(self):
 		return self.sun.set
 
-	@property
+	@cached_property
 	def dawn(self):
 		sr = self.sun.rise
 		astroDaySec = (self.sunset - sr).seconds
@@ -202,14 +194,14 @@ class HebrewYemama:
 			return sunRef.duskTime(19.8)
 		return sunsetRef
 
-	@property
+	@cached_property
 	def nightfall(self):
 		if self.custom.dayDefinition == DayDefinition.GRA:
 			return self._nightfallFor(self.sunYesterday)
 		else:
 			return self._nightfallFor(self.sun)
 
-	@property
+	@cached_property
 	def misheyakir(self):
 		sr = self.sun.rise
 		c = self.custom.misheyakir
@@ -225,54 +217,54 @@ class HebrewYemama:
 			return self.sun.dawnTime(7.65)
 		return sr
 
-	@property
+	@cached_property
 	def yemamaStart(self):
 		if self.custom.dayDefinition == DayDefinition.GRA:
 			return self.sunYesterday.set
 		else:
 			return self._nightfallFor(self.sunYesterday)
 
-	@property
+	@cached_property
 	def dayStart(self):
 		return self.sunrise if self.custom.dayDefinition == DayDefinition.GRA else self.dawn
 
-	@property
+	@cached_property
 	def yemamaEnd(self):
 		return self.sunset if self.custom.dayDefinition == DayDefinition.GRA else self.nightfall
 
-	@property
+	@cached_property
 	def shemaEnd(self):
 		return self.dayStart + ((3.0 / 12.0) * self.dayLength)
 
-	@property
+	@cached_property
 	def amidahEnd(self):
 		return self.dayStart + ((4.0 / 12.0) * self.dayLength)
 
-	@property
+	@cached_property
 	def noon(self):
 		return self.dayStart + ((6.0 / 12.0) * self.dayLength)
 
-	@property
+	@cached_property
 	def mincha(self):
 		return self.dayStart + ((6.5 / 12.0) * self.dayLength)
 
-	@property
+	@cached_property
 	def minchaKetana(self):
 		return self.dayStart + ((9.5 / 12.0) * self.dayLength)
 
-	@property
+	@cached_property
 	def plagMincha(self):
 		return self.dayStart + ((10.75 / 12.0) * self.dayLength)
 
-	@property
+	@cached_property
 	def midnight(self):
 		return self.yemamaStart + (self.nightLength / 2.0)
 
-	@property
+	@cached_property
 	def dayLength(self):
 		return (self.yemamaEnd - self.dayStart).seconds
 
-	@property
+	@cached_property
 	def nightLength(self):
 		return (self.dayStart - self.yemamaStart).seconds
 
@@ -296,11 +288,11 @@ class HebrewYemama:
 			afterEnd = nowSec - (nightLen + dayLen)
 			return 12.0 * (afterEnd / nextNightLen)
 
-	@property
+	@cached_property
 	def previousYemama(self):
 		return HebrewYemama(self.hebrewDate.prev, self.location, self.custom)
 
-	@property
+	@cached_property
 	def nextYemama(self):
 		return HebrewYemama(self.hebrewDate.next, self.location, self.custom)
 
@@ -319,7 +311,7 @@ class HebrewYemama:
 
 
 
-	@property
+	@cached_property
 	def halakhicBands(self):
 		bands = []
 		if self.custom.dayDefinition == DayDefinition.GRA:
@@ -471,7 +463,7 @@ class HebrewYemama:
 		return bands
 	
 	
-	@property
+	@cached_property
 	def sunBands(self):
 		bands = []
 		sunset_prev = self.sunYesterday.set
@@ -492,7 +484,7 @@ class HebrewYemama:
 
 		return bands
 
-	@property
+	@cached_property
 	def moonBands(self):
 		date_start = self.yemamaStart.date
 		date_end = self.yemamaEnd.date
@@ -545,7 +537,7 @@ class HebrewYemama:
 
 		return bands
 
-	@property
+	@cached_property
 	def hours(self):
 		nightLen = self.nightLength
 		dayLen = self.dayLength
@@ -561,7 +553,7 @@ class HebrewYemama:
 
 
 
-	@property
+	@cached_property
 	def observanceBands(self):
 
 		holiday = HebrewHoliday(self.hebrewDate)
