@@ -105,7 +105,7 @@ start = DateTime(start.date, Time(start.time.hour, start.time.minute, 0))
 end = end_utc + TIMEZONE
 
 frames_dir = f"frames_{input_str}"
-out_video = f"yemama_{input_str}.mp4"
+out_video = f"yemama{input_str}.mp4"
 music_file = f"{input_str}.mp3"		  # background track named by date
 
 os.makedirs(frames_dir, exist_ok=True)
@@ -221,7 +221,7 @@ video_duration = frame_no / FPS
 if not os.path.exists(music_file):
 	raise FileNotFoundError(f"Missing background music: {music_file}")
 
-background = ffmpeg.input('back-blue.mp4', stream_loop=-1)
+background = ffmpeg.input(ROOT / 'back-blue.mp4', stream_loop=-1)
 overlay = ffmpeg.input(os.path.join(frames_dir, 'frame_%05d.png'), framerate=FPS)
 music = ffmpeg.input(music_file)
 
